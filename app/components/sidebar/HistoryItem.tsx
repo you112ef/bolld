@@ -110,13 +110,15 @@ export function HistoryItem({
         <a
           href={`/chat/${item.urlId}`}
           className="flex w-full relative truncate block"
-          onClick={(e) => { // Modified onClick
+          onClick={(e) => {
+            // Modified onClick
             if (selectionMode) {
               handleItemClick(e);
             } else {
               if (isSmallViewport && isMobileMenuOpen) {
                 setMobileMenuOpen(false);
               }
+
               // Allow default navigation
             }
           }}

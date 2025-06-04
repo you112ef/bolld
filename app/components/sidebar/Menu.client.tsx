@@ -290,7 +290,8 @@ export const Menu = () => {
     const exitThreshold = 40;
 
     function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen || isSmallViewport) { // Disable on small viewports
+      if (isSettingsOpen || isSmallViewport) {
+        // Disable on small viewports
         return;
       }
 
@@ -303,7 +304,8 @@ export const Menu = () => {
       }
     }
 
-    if (!isSmallViewport) { // Only add listener if not small viewport
+    if (!isSmallViewport) {
+      // Only add listener if not small viewport
       window.addEventListener('mousemove', onMouseMove);
     } else {
       setOpen(false); // Ensure desktop menu is closed if viewport becomes small
@@ -316,9 +318,11 @@ export const Menu = () => {
 
   // Effect to hide mobile menu when switching to large viewport if it was open
   useEffect(() => {
-    if (!isSmallViewport && isMobileMenuOpen) { // Use store state
+    if (!isSmallViewport && isMobileMenuOpen) {
+      // Use store state
       setMobileMenuOpen(false); // Use store action
     }
+
     // Ensure desktop 'open' state is false when on small viewport and mobile menu is not the trigger
     if (isSmallViewport) {
       setOpen(false);
@@ -348,15 +352,18 @@ export const Menu = () => {
     <>
       <motion.div
         ref={menuRef}
-        initial={isSmallViewport ? false : "closed"}
-        animate={isSmallViewport ? false : (open ? "open" : "closed")}
+        initial={isSmallViewport ? false : 'closed'}
+        animate={isSmallViewport ? false : open ? 'open' : 'closed'}
         variants={desktopMenuVariants}
         className={classNames(
           styles.menuContainer,
           { [styles.open]: isSmallViewport && isMobileMenuOpen }, // Use store state
           'selection-accent flex flex-col',
-          // 'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50', // Handled by SCSS
-          // 'shadow-sm text-sm', // Base shadow in SCSS, text-sm can stay or be moved
+
+          /*
+           * 'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50', // Handled by SCSS
+           * 'shadow-sm text-sm', // Base shadow in SCSS, text-sm can stay or be moved
+           */
           'text-sm', // Kept text-sm, could be in SCSS too
           isSettingsOpen ? 'z-40' : 'z-sidebar', // z-index from original, ensure it's higher than .menuContainer's z-index if needed
         )}
@@ -369,7 +376,9 @@ export const Menu = () => {
             <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
               {profile?.username || 'Guest User'}
             </span>
-            <div className="flex items-center justify-center w-[2rem] h-[2rem] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0"> {/* w-[32px] h-[32px] */}
+            <div className="flex items-center justify-center w-[2rem] h-[2rem] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
+              {' '}
+              {/* w-[32px] h-[32px] */}
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
@@ -391,7 +400,8 @@ export const Menu = () => {
               <a
                 href="/"
                 className="flex-1 flex gap-2 items-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg px-4 py-2 transition-colors"
-                onClick={() => { // Added onClick to close mobile menu
+                onClick={() => {
+                  // Added onClick to close mobile menu
                   if (isSmallViewport && isMobileMenuOpen) {
                     setMobileMenuOpen(false);
                   }

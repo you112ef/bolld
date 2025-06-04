@@ -332,13 +332,15 @@ export function SelectionDialog({
     onClose();
   };
 
-  // Calculate the height for the virtualized list
-  // Assuming base font size of 16px for rem conversion
+  /*
+   * Calculate the height for the virtualized list
+   * Assuming base font size of 16px for rem conversion
+   */
   const baseFontSize = 16;
   const itemHeightRem = 3.75; // original: 60px
   const listHeightRem = Math.min(
     items.length * itemHeightRem,
-    (parseInt(maxHeight.replace('vh', '')) / 100) * (window.innerHeight / baseFontSize) - (2.5 /* original: 40px */),
+    (parseInt(maxHeight.replace('vh', '')) / 100) * (window.innerHeight / baseFontSize) - 2.5 /* original: 40px */,
   );
   const listHeight = listHeightRem * baseFontSize; // Convert back to pixels for FixedSizeList if it requires px
 

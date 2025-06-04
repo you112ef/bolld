@@ -17,12 +17,16 @@ export function Header() {
         'border-bolt-elements-borderColor': chat.started,
       })}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary"> {/* Removed cursor-pointer from wrapper */}
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
+        {' '}
+        {/* Removed cursor-pointer from wrapper */}
         <div
           className="i-ph:sidebar-simple-duotone text-xl lg:hidden cursor-pointer" // Added classes and onClick
           onClick={toggleMobileMenu}
         />
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center cursor-pointer"> {/* Added cursor-pointer to link */}
+        <a href="/" className="text-2xl font-semibold text-accent flex items-center cursor-pointer">
+          {' '}
+          {/* Added cursor-pointer to link */}
           {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
           <img src="/logo-light-styled.png" alt="logo" className="w-[5.625rem] inline-block dark:hidden" />
           <img src="/logo-dark-styled.png" alt="logo" className="w-[5.625rem] inline-block hidden dark:block" />

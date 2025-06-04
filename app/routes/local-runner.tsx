@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import type { LinksFunction } from '@remix-run/node'; // Added
 import { loadModel, runModel, freeModel } from '~/lib/localmodel/llamaLocal.js';
 import { Button } from '~/components/ui/Button';
-// Input component from ui/Input is not ideal for type="file" styling, will style raw input
-// No Textarea component in ui/, will style raw textarea
 
-export const links: LinksFunction = () => { // Added links function
+/*
+ * Input component from ui/Input is not ideal for type="file" styling, will style raw input
+ * No Textarea component in ui/, will style raw textarea
+ */
+
+export const links: LinksFunction = () => {
+  // Added links function
   return [
     {
       rel: 'script',
@@ -16,8 +20,8 @@ export const links: LinksFunction = () => { // Added links function
 };
 
 export default function LocalRunnerPage() {
-  const [inputText, setInputText] = useState("");
-  const [outputText, setOutputText] = useState("");
+  const [inputText, setInputText] = useState('');
+  const [outputText, setOutputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
 
@@ -32,22 +36,27 @@ export default function LocalRunnerPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+
+    if (!file) {
+      return;
+    }
 
     setLoading(true);
-    setOutputText(""); // Clear previous output
+    setOutputText(''); // Clear previous output
+
     try {
       // Free existing model before loading a new one
       if (modelLoaded) {
         freeModel();
         setModelLoaded(false);
       }
+
       const buffer = await file.arrayBuffer();
       await loadModel(buffer);
       setModelLoaded(true);
-      alert("تم تحميل نموذج gguf بنجاح (GGUF model loaded successfully)");
+      alert('تم تحميل نموذج gguf بنجاح (GGUF model loaded successfully)');
     } catch (err: any) {
-      alert("فشل تحميل النموذج (Failed to load model): " + err.message);
+      alert('فشل تحميل النموذج (Failed to load model): ' + err.message);
       console.error(err);
     }
     setLoading(false);
@@ -55,20 +64,23 @@ export default function LocalRunnerPage() {
 
   const handleRun = async () => {
     if (!inputText.trim()) {
-      alert("يرجى إدخال نص. (Please enter text.)");
+      alert('يرجى إدخال نص. (Please enter text.)');
       return;
     }
+
     if (!modelLoaded) {
-      alert("يرجى رفع نموذج gguf أولاً. (Please upload a GGUF model first.)");
+      alert('يرجى رفع نموذج gguf أولاً. (Please upload a GGUF model first.)');
       return;
     }
+
     setLoading(true);
-    setOutputText(""); // Clear previous output
+    setOutputText(''); // Clear previous output
+
     try {
       const response = await runModel(inputText);
       setOutputText(response);
     } catch (err: any) {
-      alert("خطأ في تشغيل النموذج (Error running model): " + err.message);
+      alert('خطأ في تشغيل النموذج (Error running model): ' + err.message);
       console.error(err);
     }
     setLoading(false);
@@ -102,7 +114,7 @@ export default function LocalRunnerPage() {
         variant="default" // Using default variant, can be changed to primary if preferred
         className="w-full max-w-md text-base py-3" // Added py-3 for better button height
       >
-        {loading ? "جارِ التشغيل... (Running...)" : "تشغيل النموذج (Run Model)"}
+        {loading ? 'جارِ التشغيل... (Running...)' : 'تشغيل النموذج (Run Model)'}
       </Button>
 
       {outputText && (
