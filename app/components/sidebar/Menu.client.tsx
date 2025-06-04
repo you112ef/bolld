@@ -14,10 +14,11 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
-import useViewport from '~/lib/hooks/useViewport'; // Added
-import styles from './Menu.module.scss'; // Added
+import useViewport from '~/lib/hooks/useViewport';
+import styles from './Menu.module.scss';
+import { useUIStore } from '~/lib/stores/uiStore'; // Added
 
-const desktopMenuVariants = { // Renamed for clarity
+const desktopMenuVariants = {
   closed: {
     opacity: 1, // Keep visible for desktop, let 'left' handle it
     visibility: 'visible', // Keep visible
@@ -70,7 +71,8 @@ export const Menu = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false); // For desktop hover
-  const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false); // Added for mobile
+  // const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false); // Removed local state
+  const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore(); // Use store
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);
@@ -314,14 +316,14 @@ export const Menu = () => {
 
   // Effect to hide mobile menu when switching to large viewport if it was open
   useEffect(() => {
-    if (!isSmallViewport && isMobileMenuVisible) {
-      setIsMobileMenuVisible(false);
+    if (!isSmallViewport && isMobileMenuOpen) { // Use store state
+      setMobileMenuOpen(false); // Use store action
     }
     // Ensure desktop 'open' state is false when on small viewport and mobile menu is not the trigger
     if (isSmallViewport) {
       setOpen(false);
     }
-  }, [isSmallViewport, isMobileMenuVisible]);
+  }, [isSmallViewport, isMobileMenuOpen, setMobileMenuOpen]);
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
@@ -346,15 +348,13 @@ export const Menu = () => {
     <>
       <motion.div
         ref={menuRef}
-        initial={isSmallViewport ? false : "closed"} // No initial animation state for mobile from framer, CSS handles
-        animate={isSmallViewport ? false : (open ? "open" : "closed")} // No framer animation for mobile
-        variants={desktopMenuVariants} // Use desktop variants
-        // style={{ width: '21.25rem' }} // Removed: width controlled by SCSS
+        initial={isSmallViewport ? false : "closed"}
+        animate={isSmallViewport ? false : (open ? "open" : "closed")}
+        variants={desktopMenuVariants}
         className={classNames(
-          styles.menuContainer, // Added SCSS module
-          { [styles.open]: isSmallViewport && isMobileMenuVisible }, // Conditionally open for mobile
-          // Original classes for theming, flex, etc., but not fixed positioning/sizing from 'side-menu'
-          'selection-accent flex flex-col', // Removed 'side-menu', 'fixed', 'top-0', 'h-full' as SCSS handles these
+          styles.menuContainer,
+          { [styles.open]: isSmallViewport && isMobileMenuOpen }, // Use store state
+          'selection-accent flex flex-col',
           // 'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50', // Handled by SCSS
           // 'shadow-sm text-sm', // Base shadow in SCSS, text-sm can stay or be moved
           'text-sm', // Kept text-sm, could be in SCSS too
@@ -391,6 +391,11 @@ export const Menu = () => {
               <a
                 href="/"
                 className="flex-1 flex gap-2 items-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg px-4 py-2 transition-colors"
+                onClick={() => { // Added onClick to close mobile menu
+                  if (isSmallViewport && isMobileMenuOpen) {
+                    setMobileMenuOpen(false);
+                  }
+                }}
               >
                 <span className="inline-block i-ph:plus-circle h-4 w-4" />
                 <span className="text-sm font-medium">Start new chat</span>

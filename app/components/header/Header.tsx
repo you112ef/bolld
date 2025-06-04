@@ -4,9 +4,11 @@ import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
+import { useUIStore } from '~/lib/stores/uiStore'; // Added import
 
 export function Header() {
   const chat = useStore(chatStore);
+  const { toggleMobileMenu } = useUIStore(); // Added store hook
 
   return (
     <header
@@ -15,9 +17,12 @@ export function Header() {
         'border-bolt-elements-borderColor': chat.started,
       })}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center">
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary"> {/* Removed cursor-pointer from wrapper */}
+        <div
+          className="i-ph:sidebar-simple-duotone text-xl lg:hidden cursor-pointer" // Added classes and onClick
+          onClick={toggleMobileMenu}
+        />
+        <a href="/" className="text-2xl font-semibold text-accent flex items-center cursor-pointer"> {/* Added cursor-pointer to link */}
           {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
           <img src="/logo-light-styled.png" alt="logo" className="w-[5.625rem] inline-block dark:hidden" />
           <img src="/logo-dark-styled.png" alt="logo" className="w-[5.625rem] inline-block hidden dark:block" />

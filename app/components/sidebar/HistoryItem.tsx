@@ -1,6 +1,8 @@
 import { useParams } from '@remix-run/react';
 import { classNames } from '~/utils/classNames';
 import { type ChatHistoryItem } from '~/lib/persistence';
+import { useUIStore } from '~/lib/stores/uiStore'; // Added
+import useViewport from '~/lib/hooks/useViewport'; // Added
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
 import { forwardRef, type ForwardedRef, useCallback } from 'react';
@@ -27,6 +29,8 @@ export function HistoryItem({
 }: HistoryItemProps) {
   const { id: urlId } = useParams();
   const isActiveChat = urlId === item.urlId;
+  const { isMobileMenuOpen, setMobileMenuOpen } = useUIStore(); // Added
+  const isSmallViewport = useViewport(64); // Added
 
   const { editing, handleChange, handleBlur, handleSubmit, handleKeyDown, currentDescription, toggleEditMode } =
     useEditChatDescription({
@@ -106,7 +110,16 @@ export function HistoryItem({
         <a
           href={`/chat/${item.urlId}`}
           className="flex w-full relative truncate block"
-          onClick={selectionMode ? handleItemClick : undefined}
+          onClick={(e) => { // Modified onClick
+            if (selectionMode) {
+              handleItemClick(e);
+            } else {
+              if (isSmallViewport && isMobileMenuOpen) {
+                setMobileMenuOpen(false);
+              }
+              // Allow default navigation
+            }
+          }}
         >
           <WithTooltip tooltip={currentDescription}>
             <span className="truncate pr-24">{currentDescription}</span>
