@@ -295,7 +295,7 @@ export const Workbench = memo(
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
 
-    const isSmallViewport = useViewport(1024);
+    const isSmallViewport = useViewport(64); // Corresponds to 64rem (1024px / 16px base)
 
     const setSelectedView = (view: WorkbenchViewType) => {
       workbenchStore.currentView.set(view);
@@ -402,7 +402,7 @@ export const Workbench = memo(
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content
                           className={classNames(
-                            'min-w-[240px] z-[250]',
+                            'min-w-[15rem] z-[250]', // 240px
                             'bg-white dark:bg-[#141414]',
                             'rounded-lg shadow-lg',
                             'border border-gray-200/50 dark:border-gray-800/50',

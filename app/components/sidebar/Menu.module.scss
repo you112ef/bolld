@@ -1,0 +1,37 @@
+.menuContainer {
+  // Mobile-first styles
+  width: 85vw; // Takes up 85% of the viewport width on mobile
+  max-width: 21.25rem; // But not more than the original rem width
+  // By default, it's hidden off-screen to the left.
+  // The 'open' class will slide it in.
+  transform: translateX(-105%);
+  transition: transform 0.3s ease-in-out;
+
+  // Base fixed positioning and other properties from the original component
+  position: fixed;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bolt-elements-bg-depth-1); // Use CSS var for bg
+  border-right: 1px solid var(--bolt-elements-borderColor); // Use CSS var for border
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1); // Example shadow
+  z-index: 50; // Ensure it's above content, consistent with z-sidebar if possible
+
+  &.open {
+    transform: translateX(0);
+  }
+}
+
+// Styles for larger screens (desktop)
+@media (min-width: 1024px) { // Assuming 1024px is the 'lg' breakpoint (64rem)
+  .menuContainer {
+    width: 21.25rem; // Fixed rem width for desktop
+    max-width: none; // Remove max-width for desktop if fixed width is desired
+    // Desktop animation will be controlled by framer-motion as before
+    // So, we might not need transform here if framer-motion handles left property.
+    // The JS will need to NOT apply 'open' class for transform on desktop.
+    // Revert transform so framer-motion can use 'left'
+    transform: none;
+  }
+}

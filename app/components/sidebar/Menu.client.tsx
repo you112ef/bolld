@@ -14,12 +14,14 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
+import useViewport from '~/lib/hooks/useViewport'; // Added
+import styles from './Menu.module.scss'; // Added
 
-const menuVariants = {
+const desktopMenuVariants = { // Renamed for clarity
   closed: {
-    opacity: 0,
-    visibility: 'hidden',
-    left: '-340px',
+    opacity: 1, // Keep visible for desktop, let 'left' handle it
+    visibility: 'visible', // Keep visible
+    left: '-21.25rem',
     transition: {
       duration: 0.2,
       ease: cubicEasingFn,
@@ -27,7 +29,7 @@ const menuVariants = {
   },
   open: {
     opacity: 1,
-    visibility: 'initial',
+    visibility: 'visible',
     left: 0,
     transition: {
       duration: 0.2,
@@ -67,7 +69,8 @@ export const Menu = () => {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // For desktop hover
+  const [isMobileMenuVisible, setIsMobileMenuVisible] = useState(false); // Added for mobile
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);
@@ -278,12 +281,14 @@ export const Menu = () => {
     }
   }, [open, selectionMode]);
 
+  const isSmallViewport = useViewport(64); // Added (64rem = 1024px)
+
   useEffect(() => {
     const enterThreshold = 40;
     const exitThreshold = 40;
 
     function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen) {
+      if (isSettingsOpen || isSmallViewport) { // Disable on small viewports
         return;
       }
 
@@ -296,12 +301,27 @@ export const Menu = () => {
       }
     }
 
-    window.addEventListener('mousemove', onMouseMove);
+    if (!isSmallViewport) { // Only add listener if not small viewport
+      window.addEventListener('mousemove', onMouseMove);
+    } else {
+      setOpen(false); // Ensure desktop menu is closed if viewport becomes small
+    }
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
     };
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, isSmallViewport]);
+
+  // Effect to hide mobile menu when switching to large viewport if it was open
+  useEffect(() => {
+    if (!isSmallViewport && isMobileMenuVisible) {
+      setIsMobileMenuVisible(false);
+    }
+    // Ensure desktop 'open' state is false when on small viewport and mobile menu is not the trigger
+    if (isSmallViewport) {
+      setOpen(false);
+    }
+  }, [isSmallViewport, isMobileMenuVisible]);
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
@@ -326,24 +346,30 @@ export const Menu = () => {
     <>
       <motion.div
         ref={menuRef}
-        initial="closed"
-        animate={open ? 'open' : 'closed'}
-        variants={menuVariants}
-        style={{ width: '340px' }}
+        initial={isSmallViewport ? false : "closed"} // No initial animation state for mobile from framer, CSS handles
+        animate={isSmallViewport ? false : (open ? "open" : "closed")} // No framer animation for mobile
+        variants={desktopMenuVariants} // Use desktop variants
+        // style={{ width: '21.25rem' }} // Removed: width controlled by SCSS
         className={classNames(
-          'flex selection-accent flex-col side-menu fixed top-0 h-full',
-          'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50',
-          'shadow-sm text-sm',
-          isSettingsOpen ? 'z-40' : 'z-sidebar',
+          styles.menuContainer, // Added SCSS module
+          { [styles.open]: isSmallViewport && isMobileMenuVisible }, // Conditionally open for mobile
+          // Original classes for theming, flex, etc., but not fixed positioning/sizing from 'side-menu'
+          'selection-accent flex flex-col', // Removed 'side-menu', 'fixed', 'top-0', 'h-full' as SCSS handles these
+          // 'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50', // Handled by SCSS
+          // 'shadow-sm text-sm', // Base shadow in SCSS, text-sm can stay or be moved
+          'text-sm', // Kept text-sm, could be in SCSS too
+          isSettingsOpen ? 'z-40' : 'z-sidebar', // z-index from original, ensure it's higher than .menuContainer's z-index if needed
         )}
       >
+        {/* This div's styles are now largely in Menu.module.scss */}
+        {/* The children of motion.div remain the same */}
         <div className="h-12 flex items-center justify-between px-4 border-b border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/50">
           <div className="text-gray-900 dark:text-white font-medium"></div>
           <div className="flex items-center gap-3">
             <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
               {profile?.username || 'Guest User'}
             </span>
-            <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
+            <div className="flex items-center justify-center w-[2rem] h-[2rem] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0"> {/* w-[32px] h-[32px] */}
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}

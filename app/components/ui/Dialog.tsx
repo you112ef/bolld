@@ -116,7 +116,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
       <RadixDialog.Content asChild>
         <motion.div
           className={classNames(
-            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[520px] focus:outline-none',
+            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-950 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[32.5rem] focus:outline-none', // original: w-[520px]
             className,
           )}
           initial="closed"
@@ -333,10 +333,14 @@ export function SelectionDialog({
   };
 
   // Calculate the height for the virtualized list
-  const listHeight = Math.min(
-    items.length * 60,
-    parseInt(maxHeight.replace('vh', '')) * window.innerHeight * 0.01 - 40,
+  // Assuming base font size of 16px for rem conversion
+  const baseFontSize = 16;
+  const itemHeightRem = 3.75; // original: 60px
+  const listHeightRem = Math.min(
+    items.length * itemHeightRem,
+    (parseInt(maxHeight.replace('vh', '')) / 100) * (window.innerHeight / baseFontSize) - (2.5 /* original: 40px */),
   );
+  const listHeight = listHeightRem * baseFontSize; // Convert back to pixels for FixedSizeList if it requires px
 
   // Render each item in the virtualized list
   const ItemRenderer = ({ index, style }: { index: number; style: React.CSSProperties }) => {
@@ -415,7 +419,7 @@ export function SelectionDialog({
                   height={listHeight}
                   width="100%"
                   itemCount={items.length}
-                  itemSize={60}
+                  itemSize={itemHeightRem * baseFontSize} // original: 60, pass px value if lib requires
                   className="scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-bolt-elements-bg-depth-3"
                 >
                   {ItemRenderer}
