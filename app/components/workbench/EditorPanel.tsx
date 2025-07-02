@@ -172,6 +172,7 @@ export const EditorPanel = memo(
     }, [editorDocument, unsavedFiles]);
 
     return (
+      <div className="h-full">
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal">
@@ -290,7 +291,7 @@ export const EditorPanel = memo(
         onToggle={() => setIsMediaIntelligenceVisible(!isMediaIntelligenceVisible)}
         onCodeGenerated={handleCodeGenerated}
       />
-    </PanelGroup>
+    </div>
     );
   },
 );
