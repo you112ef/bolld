@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
@@ -25,6 +25,8 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { Search } from './Search'; // <-- Ensure Search is imported
 import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { LockManager } from './LockManager'; // <-- Import LockManager
+import { getLanguageAgent, getLanguageFromFilePath } from '~/lib/ai/languageMap';
+import { semanticSearch } from '~/lib/search/semanticSearch';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -62,6 +64,60 @@ export const EditorPanel = memo(
 
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
+    
+    // AI Agent states
+    const [isAIAgentVisible, setIsAIAgentVisible] = useState(false);
+    const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+    const [selectedText, setSelectedText] = useState('');
+    const [aiSearchQuery, setAISearchQuery] = useState('');
+    const [aiSearchResults, setAISearchResults] = useState<any[]>([]);
+    
+    // Initialize semantic search with current files
+    useEffect(() => {
+      if (files) {
+        semanticSearch.indexFiles(files).catch(console.error);
+      }
+    }, [files]);
+
+    // Handle global search shortcut
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          setIsGlobalSearchOpen(true);
+        }
+        if (e.key === 'Escape') {
+          setIsGlobalSearchOpen(false);
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const handleAISearch = useCallback(async (query: string) => {
+      if (!query.trim()) {
+        setAISearchResults([]);
+        return;
+      }
+
+      try {
+        const results = await semanticSearch.search({
+          query,
+          type: 'semantic',
+          maxResults: 10,
+        });
+        setAISearchResults(results);
+      } catch (error) {
+        console.error('AI search failed:', error);
+      }
+    }, []);
+
+    const handleAICommand = useCallback(async (command: string, context: string) => {
+      // TODO: Integrate with AI API
+      console.log(`Executing AI command: ${command} with context:`, context);
+      // This would call the existing chat API with the command and context
+    }, []);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
