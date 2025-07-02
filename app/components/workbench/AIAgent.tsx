@@ -276,14 +276,31 @@ export const AIAgent = memo(({
     }
   }, []);
 
-  // Placeholder AI function - integrate with your existing chat API
+  // AI function that integrates with the AI provider
   const callAI = useCallback(async (prompt: string, model: string): Promise<string> => {
-    // This should integrate with your existing AI provider
-    // For now, return a placeholder response
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-    
-    return `This is a placeholder response for model ${model}. In production, this would call your AI API with the prompt: "${prompt.slice(0, 100)}..."`;
-  }, []);
+    try {
+      const { aiProvider } = await import('~/lib/ai/aiProvider');
+      
+      const response = await aiProvider.callAI({
+        prompt,
+        model: model as any, // Type assertion for now
+        context: getContextMetadata(),
+        maxTokens: 2000,
+        temperature: 0.7,
+      });
+      
+      return response.content;
+    } catch (error) {
+      logger.error('AI call failed:', error);
+      return `I apologize, but I encountered an error while processing your request. This could be due to API configuration issues. Please check your API keys in the settings.
+
+Error details: ${error instanceof Error ? error.message : 'Unknown error'}
+
+Your request: "${prompt.slice(0, 100)}${prompt.length > 100 ? '...' : ''}"
+
+You can still use the existing chat interface for AI assistance.`;
+    }
+  }, [getContextMetadata]);
 
   // Handle form submission
   const handleSubmit = useCallback((e: React.FormEvent) => {
