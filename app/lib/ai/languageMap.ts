@@ -1,191 +1,308 @@
-export interface LanguageAgentConfig {
-  model: string;
-  provider: string;
-  systemPrompt: string;
-  actions: AgentAction[];
-  fileExtensions: string[];
-  contextualHelpers: ContextualHelper[];
-}
+import { createScopedLogger } from '~/utils/logger';
 
-export interface AgentAction {
-  command: string;
-  label: string;
+const logger = createScopedLogger('LanguageMap');
+
+export type AIModel = 'gpt-4' | 'claude-3-5-sonnet' | 'gemini-pro-vision' | 'gpt-4o' | 'mistral-large';
+
+export interface LanguageConfig {
+  model: AIModel;
+  actions: string[];
   description: string;
+  extensions: string[];
   icon: string;
+  color: string;
 }
 
-export interface ContextualHelper {
-  trigger: string;
-  description: string;
-  template: string;
-}
-
-export const languageAgentMap: Record<string, LanguageAgentConfig> = {
+export const LANGUAGE_MAP: Record<string, LanguageConfig> = {
   python: {
     model: 'gpt-4',
-    provider: 'openai',
-    systemPrompt: `You are a Python development assistant with deep expertise in Python ecosystem, frameworks like Django, Flask, FastAPI, and libraries like NumPy, Pandas, PyTorch. You understand Python best practices, PEP standards, and can help with debugging, optimization, and testing.`,
-    fileExtensions: ['py', 'pyx', 'pyi', 'pyw'],
-    actions: [
-      { command: '/test', label: 'Add Tests', description: 'Generate unit tests for this code', icon: 'i-ph:test-tube' },
-      { command: '/optimize', label: 'Optimize', description: 'Optimize performance and memory usage', icon: 'i-ph:lightning' },
-      { command: '/debug', label: 'Debug', description: 'Help debug issues and suggest fixes', icon: 'i-ph:bug' },
-      { command: '/docs', label: 'Document', description: 'Add docstrings and documentation', icon: 'i-ph:book' },
-      { command: '/lint', label: 'Lint Fix', description: 'Fix PEP8 and linting issues', icon: 'i-ph:check-circle' },
-    ],
-    contextualHelpers: [
-      { trigger: 'import', description: 'Suggest better imports', template: 'Help me optimize these imports: {selection}' },
-      { trigger: 'def ', description: 'Improve function', template: 'Review and improve this function: {selection}' },
-      { trigger: 'class ', description: 'Class design review', template: 'Review this class design: {selection}' },
-    ]
+    actions: ['Add tests', 'Optimize performance', 'Add type hints', 'Format with black', 'Run script'],
+    description: 'Python development with advanced testing and optimization',
+    extensions: ['.py', '.pyx', '.pyi'],
+    icon: 'i-ph:python-logo',
+    color: 'text-blue-500',
   },
-  
   javascript: {
     model: 'gpt-4o',
-    provider: 'openai',
-    systemPrompt: `You are a JavaScript/TypeScript expert with deep knowledge of modern ES6+, Node.js, React, Vue, Angular, and web technologies. You understand async patterns, bundlers, testing frameworks, and performance optimization.`,
-    fileExtensions: ['js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs'],
-    actions: [
-      { command: '/test', label: 'Add Tests', description: 'Generate Jest/Vitest tests', icon: 'i-ph:test-tube' },
-      { command: '/types', label: 'Add Types', description: 'Add TypeScript types', icon: 'i-ph:code' },
-      { command: '/async', label: 'Async Refactor', description: 'Convert to async/await or promises', icon: 'i-ph:arrows-clockwise' },
-      { command: '/bundle', label: 'Bundle Analysis', description: 'Analyze bundle size and imports', icon: 'i-ph:package' },
-      { command: '/perf', label: 'Performance', description: 'Optimize performance and rendering', icon: 'i-ph:gauge' },
-    ],
-    contextualHelpers: [
-      { trigger: 'useState', description: 'React hook optimization', template: 'Optimize this React hook usage: {selection}' },
-      { trigger: 'useEffect', description: 'Effect dependencies', template: 'Review useEffect dependencies: {selection}' },
-      { trigger: 'async', description: 'Async pattern review', template: 'Review this async pattern: {selection}' },
-    ]
+    actions: ['Add JSDoc', 'Convert to TypeScript', 'Optimize bundle', 'Add tests', 'Lint fix'],
+    description: 'JavaScript/Node.js development with modern best practices',
+    extensions: ['.js', '.jsx', '.mjs', '.cjs'],
+    icon: 'i-ph:js-logo',
+    color: 'text-yellow-500',
   },
-
+  typescript: {
+    model: 'gpt-4o',
+    actions: ['Fix types', 'Add interfaces', 'Generate types', 'Optimize imports', 'Add tests'],
+    description: 'TypeScript development with type safety focus',
+    extensions: ['.ts', '.tsx', '.d.ts'],
+    icon: 'i-ph:typescript-logo',
+    color: 'text-blue-600',
+  },
   bash: {
-    model: 'claude-3-sonnet',
-    provider: 'anthropic',
-    systemPrompt: `You are a shell scripting and DevOps expert with expertise in Bash, Zsh, PowerShell, Docker, Kubernetes, and system administration. You can help with automation, deployment, and infrastructure.`,
-    fileExtensions: ['sh', 'bash', 'zsh', 'fish'],
-    actions: [
-      { command: '/secure', label: 'Security Check', description: 'Review for security issues', icon: 'i-ph:shield-check' },
-      { command: '/portable', label: 'Make Portable', description: 'Improve cross-platform compatibility', icon: 'i-ph:globe' },
-      { command: '/error', label: 'Error Handling', description: 'Add robust error handling', icon: 'i-ph:warning' },
-      { command: '/docker', label: 'Dockerize', description: 'Create Dockerfile for this script', icon: 'i-ph:cube' },
-    ],
-    contextualHelpers: [
-      { trigger: 'if [', description: 'Condition improvement', template: 'Improve this condition: {selection}' },
-      { trigger: 'for ', description: 'Loop optimization', template: 'Optimize this loop: {selection}' },
-    ]
+    model: 'claude-3-5-sonnet',
+    actions: ['Add error handling', 'Optimize script', 'Add documentation', 'Security audit', 'Make portable'],
+    description: 'Shell scripting with robust error handling',
+    extensions: ['.sh', '.bash', '.zsh'],
+    icon: 'i-ph:terminal-window',
+    color: 'text-green-500',
   },
-
+  docker: {
+    model: 'claude-3-5-sonnet',
+    actions: ['Optimize layers', 'Security scan', 'Multi-stage build', 'Add healthcheck', 'Reduce size'],
+    description: 'Docker containerization and optimization',
+    extensions: ['Dockerfile', '.dockerignore'],
+    icon: 'i-ph:docker-logo',
+    color: 'text-blue-400',
+  },
   html: {
-    model: 'gemini-1.5-pro',
-    provider: 'google',
-    systemPrompt: `You are a web development expert specializing in HTML, CSS, accessibility, and modern web standards. You understand semantic HTML, WCAG guidelines, and can create beautiful, responsive designs.`,
-    fileExtensions: ['html', 'htm', 'xhtml'],
-    actions: [
-      { command: '/a11y', label: 'Accessibility', description: 'Improve accessibility and WCAG compliance', icon: 'i-ph:wheelchair' },
-      { command: '/responsive', label: 'Make Responsive', description: 'Add responsive design patterns', icon: 'i-ph:device-mobile' },
-      { command: '/seo', label: 'SEO Optimize', description: 'Optimize for search engines', icon: 'i-ph:magnifying-glass' },
-      { command: '/semantic', label: 'Semantic HTML', description: 'Improve semantic structure', icon: 'i-ph:tree-structure' },
-    ],
-    contextualHelpers: [
-      { trigger: '<div', description: 'Semantic alternative', template: 'Suggest semantic HTML for: {selection}' },
-      { trigger: '<img', description: 'Image optimization', template: 'Optimize this image tag: {selection}' },
-    ]
+    model: 'gemini-pro-vision',
+    actions: ['Improve accessibility', 'SEO optimize', 'Responsive design', 'Performance audit', 'Semantic HTML'],
+    description: 'HTML with accessibility and SEO focus',
+    extensions: ['.html', '.htm'],
+    icon: 'i-ph:html5-logo',
+    color: 'text-orange-500',
   },
-
   css: {
-    model: 'gemini-1.5-pro',
-    provider: 'google',
-    systemPrompt: `You are a CSS expert with deep knowledge of modern CSS, Flexbox, Grid, animations, and design systems. You can help with responsive design, performance optimization, and beautiful UI creation.`,
-    fileExtensions: ['css', 'scss', 'sass', 'less', 'stylus'],
-    actions: [
-      { command: '/responsive', label: 'Make Responsive', description: 'Add responsive breakpoints', icon: 'i-ph:device-mobile' },
-      { command: '/animate', label: 'Add Animation', description: 'Create smooth animations', icon: 'i-ph:play' },
-      { command: '/optimize', label: 'Optimize', description: 'Reduce CSS size and improve performance', icon: 'i-ph:lightning' },
-      { command: '/layout', label: 'Improve Layout', description: 'Enhance layout with Grid/Flexbox', icon: 'i-ph:layout' },
-    ],
-    contextualHelpers: [
-      { trigger: 'display:', description: 'Layout suggestion', template: 'Improve this layout: {selection}' },
-      { trigger: '@media', description: 'Responsive optimization', template: 'Optimize breakpoints: {selection}' },
-    ]
+    model: 'gemini-pro-vision',
+    actions: ['Responsive design', 'Dark mode', 'Animations', 'Performance optimize', 'Modern CSS'],
+    description: 'CSS styling with modern techniques',
+    extensions: ['.css', '.scss', '.sass', '.less'],
+    icon: 'i-ph:css3-logo',
+    color: 'text-blue-500',
   },
-
   sql: {
-    model: 'mistral-large',
-    provider: 'mistral',
-    systemPrompt: `You are a database expert with deep knowledge of SQL, query optimization, indexing strategies, and database design. You can help with complex queries, performance tuning, and schema design.`,
-    fileExtensions: ['sql', 'mysql', 'pgsql', 'sqlite'],
-    actions: [
-      { command: '/optimize', label: 'Optimize Query', description: 'Improve query performance', icon: 'i-ph:lightning' },
-      { command: '/index', label: 'Index Strategy', description: 'Suggest indexing improvements', icon: 'i-ph:list-bullets' },
-      { command: '/security', label: 'Security Check', description: 'Check for SQL injection risks', icon: 'i-ph:shield-check' },
-      { command: '/explain', label: 'Explain Query', description: 'Explain query execution plan', icon: 'i-ph:info' },
-    ],
-    contextualHelpers: [
-      { trigger: 'SELECT', description: 'Query optimization', template: 'Optimize this query: {selection}' },
-      { trigger: 'JOIN', description: 'Join optimization', template: 'Improve this join: {selection}' },
-    ]
+    model: 'gpt-4',
+    actions: ['Optimize query', 'Add indexes', 'Explain plan', 'Security audit', 'Normalize schema'],
+    description: 'SQL optimization and database design',
+    extensions: ['.sql', '.sqlite'],
+    icon: 'i-ph:database',
+    color: 'text-gray-600',
   },
-
-  dockerfile: {
-    model: 'claude-3-sonnet',
-    provider: 'anthropic',
-    systemPrompt: `You are a Docker and containerization expert with deep knowledge of container best practices, multi-stage builds, security, and optimization. You can help with Dockerfile optimization and container orchestration.`,
-    fileExtensions: ['dockerfile', 'containerfile'],
-    actions: [
-      { command: '/optimize', label: 'Optimize Size', description: 'Reduce image size and layers', icon: 'i-ph:arrows-in' },
-      { command: '/security', label: 'Security Scan', description: 'Improve container security', icon: 'i-ph:shield-check' },
-      { command: '/multistage', label: 'Multi-stage', description: 'Convert to multi-stage build', icon: 'i-ph:stack' },
-      { command: '/cache', label: 'Cache Optimize', description: 'Optimize build cache', icon: 'i-ph:lightning' },
-    ],
-    contextualHelpers: [
-      { trigger: 'FROM', description: 'Base image optimization', template: 'Optimize base image: {selection}' },
-      { trigger: 'RUN', description: 'Layer optimization', template: 'Optimize these commands: {selection}' },
-    ]
+  yaml: {
+    model: 'claude-3-5-sonnet',
+    actions: ['Validate syntax', 'Optimize structure', 'Add documentation', 'Security check', 'Format'],
+    description: 'YAML configuration management',
+    extensions: ['.yml', '.yaml'],
+    icon: 'i-ph:gear',
+    color: 'text-purple-500',
   },
-
+  json: {
+    model: 'gpt-4o',
+    actions: ['Validate schema', 'Format', 'Minify', 'Add comments', 'Type definitions'],
+    description: 'JSON data and configuration',
+    extensions: ['.json', '.jsonc'],
+    icon: 'i-ph:brackets-curly',
+    color: 'text-yellow-600',
+  },
+  markdown: {
+    model: 'gpt-4o',
+    actions: ['Table of contents', 'Fix formatting', 'Add links', 'Improve structure', 'Export'],
+    description: 'Markdown documentation and content',
+    extensions: ['.md', '.mdx'],
+    icon: 'i-ph:text-markdown',
+    color: 'text-gray-700',
+  },
+  rust: {
+    model: 'gpt-4',
+    actions: ['Memory safety', 'Performance optimize', 'Add docs', 'Cargo check', 'Add tests'],
+    description: 'Rust systems programming',
+    extensions: ['.rs'],
+    icon: 'i-ph:rust-logo',
+    color: 'text-orange-600',
+  },
+  go: {
+    model: 'gpt-4',
+    actions: ['gofmt', 'Add benchmarks', 'Optimize concurrency', 'Add docs', 'Error handling'],
+    description: 'Go development with concurrency focus',
+    extensions: ['.go'],
+    icon: 'i-ph:go-logo',
+    color: 'text-cyan-500',
+  },
+  java: {
+    model: 'gpt-4',
+    actions: ['Add JavaDoc', 'Optimize imports', 'Design patterns', 'Add tests', 'Spring features'],
+    description: 'Java enterprise development',
+    extensions: ['.java'],
+    icon: 'i-ph:java-logo',
+    color: 'text-red-500',
+  },
+  php: {
+    model: 'gpt-4',
+    actions: ['PSR standards', 'Security audit', 'Performance optimize', 'Add docs', 'Modern PHP'],
+    description: 'PHP web development',
+    extensions: ['.php'],
+    icon: 'i-ph:php-logo',
+    color: 'text-purple-600',
+  },
+  ruby: {
+    model: 'gpt-4',
+    actions: ['Rubocop fix', 'Add gems', 'Rails optimize', 'Add tests', 'Refactor'],
+    description: 'Ruby/Rails development',
+    extensions: ['.rb'],
+    icon: 'i-ph:ruby-logo',
+    color: 'text-red-600',
+  },
   default: {
     model: 'gpt-4o',
-    provider: 'openai', 
-    systemPrompt: `You are a general-purpose coding assistant with broad knowledge across programming languages and development practices. You can help with code review, debugging, and improvement suggestions.`,
-    fileExtensions: ['*'],
-    actions: [
-      { command: '/explain', label: 'Explain Code', description: 'Explain what this code does', icon: 'i-ph:info' },
-      { command: '/improve', label: 'Improve', description: 'Suggest improvements', icon: 'i-ph:arrow-up' },
-      { command: '/refactor', label: 'Refactor', description: 'Refactor for better structure', icon: 'i-ph:arrows-clockwise' },
-      { command: '/comment', label: 'Add Comments', description: 'Add helpful comments', icon: 'i-ph:chat-text' },
-    ],
-    contextualHelpers: [
-      { trigger: 'function', description: 'Function improvement', template: 'Improve this function: {selection}' },
-      { trigger: 'class', description: 'Class review', template: 'Review this class: {selection}' },
-    ]
-  }
+    actions: ['Explain code', 'Add comments', 'Refactor', 'Find bugs', 'Optimize'],
+    description: 'General purpose code assistance',
+    extensions: [],
+    icon: 'i-ph:code',
+    color: 'text-gray-500',
+  },
 };
 
-export function getLanguageAgent(fileExtension: string): LanguageAgentConfig {
-  // Remove the dot from extension if present
-  const ext = fileExtension.replace(/^\./, '').toLowerCase();
+/**
+ * Get language configuration from file path
+ */
+export function getLanguageFromFilePath(filePath: string): string {
+  const extension = getFileExtension(filePath);
+  const fileName = getFileName(filePath);
   
-  // Find matching agent config
-  for (const [language, config] of Object.entries(languageAgentMap)) {
-    if (config.fileExtensions.includes(ext)) {
-      return config;
-    }
+  // Special cases for files without extensions
+  if (fileName === 'Dockerfile' || fileName.includes('Dockerfile')) {
+    return 'docker';
   }
   
-  return languageAgentMap.default;
-}
-
-export function getLanguageFromFilePath(filePath: string): string {
-  const extension = filePath.split('.').pop() || '';
-  const agent = getLanguageAgent(extension);
+  if (fileName.includes('.dockerignore')) {
+    return 'docker';
+  }
   
-  // Return the language key from the map
-  for (const [language, config] of Object.entries(languageAgentMap)) {
-    if (config === agent && language !== 'default') {
+  // Check extension mapping
+  for (const [language, config] of Object.entries(LANGUAGE_MAP)) {
+    if (config.extensions.includes(extension) || config.extensions.includes(fileName)) {
       return language;
     }
   }
   
-  return 'text';
+  return 'default';
 }
+
+/**
+ * Get language agent configuration
+ */
+export function getLanguageAgent(language: string): LanguageConfig {
+  return LANGUAGE_MAP[language] || LANGUAGE_MAP.default;
+}
+
+/**
+ * Get all supported languages
+ */
+export function getAllLanguages(): string[] {
+  return Object.keys(LANGUAGE_MAP).filter(lang => lang !== 'default');
+}
+
+/**
+ * Get language from Monaco editor language ID
+ */
+export function getLanguageFromMonaco(monacoLanguage: string): string {
+  const mappings: Record<string, string> = {
+    'typescript': 'typescript',
+    'javascript': 'javascript',
+    'python': 'python',
+    'html': 'html',
+    'css': 'css',
+    'scss': 'css',
+    'sass': 'css',
+    'less': 'css',
+    'sql': 'sql',
+    'yaml': 'yaml',
+    'json': 'json',
+    'markdown': 'markdown',
+    'rust': 'rust',
+    'go': 'go',
+    'java': 'java',
+    'php': 'php',
+    'ruby': 'ruby',
+    'shell': 'bash',
+    'bash': 'bash',
+    'dockerfile': 'docker',
+  };
+  
+  return mappings[monacoLanguage] || 'default';
+}
+
+/**
+ * Get file extension from path
+ */
+function getFileExtension(filePath: string): string {
+  const parts = filePath.split('.');
+  return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
+}
+
+/**
+ * Get file name from path
+ */
+function getFileName(filePath: string): string {
+  return filePath.split('/').pop() || '';
+}
+
+/**
+ * Generate AI prompt for language-specific task
+ */
+export function generateLanguagePrompt(
+  language: string,
+  action: string,
+  code: string,
+  context?: {
+    fileName?: string;
+    projectType?: string;
+    dependencies?: string[];
+  }
+): string {
+  const config = getLanguageAgent(language);
+  
+  const basePrompt = `You are an expert ${language} developer. `;
+  
+  const actionPrompts: Record<string, string> = {
+    'Add tests': `Generate comprehensive unit tests for the following ${language} code. Include edge cases and mock external dependencies.`,
+    'Optimize performance': `Analyze and optimize the performance of this ${language} code. Suggest improvements for speed, memory usage, and efficiency.`,
+    'Add type hints': `Add proper type hints to this Python code following PEP 484 standards.`,
+    'Security audit': `Perform a security audit of this ${language} code. Identify vulnerabilities and suggest fixes.`,
+    'Add documentation': `Add comprehensive documentation to this ${language} code including docstrings, comments, and usage examples.`,
+    'Refactor': `Refactor this ${language} code to improve readability, maintainability, and follow best practices.`,
+    'Fix bugs': `Identify and fix bugs in this ${language} code. Explain what was wrong and how you fixed it.`,
+    'Explain code': `Explain how this ${language} code works, including its purpose, logic flow, and key concepts.`,
+  };
+  
+  const actionPrompt = actionPrompts[action] || `Help with this ${language} code: ${action}`;
+  
+  let prompt = basePrompt + actionPrompt;
+  
+  if (context?.fileName) {
+    prompt += `\n\nFile: ${context.fileName}`;
+  }
+  
+  if (context?.projectType) {
+    prompt += `\nProject type: ${context.projectType}`;
+  }
+  
+  if (context?.dependencies?.length) {
+    prompt += `\nDependencies: ${context.dependencies.join(', ')}`;
+  }
+  
+  prompt += `\n\nCode:\n\`\`\`${language}\n${code}\n\`\`\``;
+  
+  return prompt;
+}
+
+/**
+ * Get execution command for language
+ */
+export function getExecutionCommand(language: string, filePath: string): string | null {
+  const commands: Record<string, string> = {
+    python: `python3 "${filePath}"`,
+    javascript: `node "${filePath}"`,
+    typescript: `npx ts-node "${filePath}"`,
+    bash: `bash "${filePath}"`,
+    go: `go run "${filePath}"`,
+    rust: `cargo run --bin ${getFileName(filePath).replace('.rs', '')}`,
+    java: `javac "${filePath}" && java ${getFileName(filePath).replace('.java', '')}`,
+    php: `php "${filePath}"`,
+    ruby: `ruby "${filePath}"`,
+  };
+  
+  return commands[language] || null;
+}
+
+logger.info('Language map initialized with', Object.keys(LANGUAGE_MAP).length, 'languages');

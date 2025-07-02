@@ -40,6 +40,7 @@ export interface ActionAlert {
   description: string;
   content: string;
   source?: 'terminal' | 'preview'; // Add source to differentiate between terminal and preview errors
+  isLockedFile?: boolean; // Indicates if this is a locked file alert
 }
 
 export interface SupabaseAlert {

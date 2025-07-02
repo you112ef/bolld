@@ -25,6 +25,8 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { Search } from './Search'; // <-- Ensure Search is imported
 import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { LockManager } from './LockManager'; // <-- Import LockManager
+import { AIAgent } from './AIAgent'; // <-- Import AI Agent
+import { MediaIntelligence } from './MediaIntelligence'; // <-- Import Media Intelligence
 import { getLanguageAgent, getLanguageFromFilePath } from '~/lib/ai/languageMap';
 import { semanticSearch } from '~/lib/search/semanticSearch';
 
@@ -67,10 +69,12 @@ export const EditorPanel = memo(
     
     // AI Agent states
     const [isAIAgentVisible, setIsAIAgentVisible] = useState(false);
+    const [isMediaIntelligenceVisible, setIsMediaIntelligenceVisible] = useState(false);
     const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
     const [selectedText, setSelectedText] = useState('');
     const [aiSearchQuery, setAISearchQuery] = useState('');
     const [aiSearchResults, setAISearchResults] = useState<any[]>([]);
+    const [cursorPosition, setCursorPosition] = useState<{ line: number; column: number }>({ line: 0, column: 0 });
     
     // Initialize semantic search with current files
     useEffect(() => {
@@ -118,6 +122,37 @@ export const EditorPanel = memo(
       console.log(`Executing AI command: ${command} with context:`, context);
       // This would call the existing chat API with the command and context
     }, []);
+
+    // Handle code generation from media intelligence
+    const handleCodeGenerated = useCallback((code: string, fileName: string, language: string) => {
+      // Create the file and select it
+      workbenchStore.createFile(fileName, code).then((success) => {
+        if (success) {
+          onFileSelect?.(fileName);
+        }
+      });
+    }, [onFileSelect]);
+
+    // Handle editor changes to track cursor position and selected text
+    const handleEditorChange = useCallback((update: any) => {
+      onEditorChange?.(update);
+      
+      // Update cursor position and selected text for AI context
+      if (update.selection) {
+        const selection = update.selection.main;
+        setCursorPosition({
+          line: selection.anchor,
+          column: selection.head,
+        });
+        
+        if (selection.from !== selection.to) {
+          const selectedContent = update.content.slice(selection.from, selection.to);
+          setSelectedText(selectedContent);
+        } else {
+          setSelectedText('');
+        }
+      }
+    }, [onEditorChange]);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -227,7 +262,7 @@ export const EditorPanel = memo(
                   doc={editorDocument}
                   autoFocusOnDocumentChange={!isMobile()}
                   onScroll={onEditorScroll}
-                  onChange={onEditorChange}
+                  onChange={handleEditorChange}
                   onSave={onFileSave}
                 />
               </div>
@@ -237,6 +272,25 @@ export const EditorPanel = memo(
         <PanelResizeHandle />
         <TerminalTabs />
       </PanelGroup>
+
+      {/* AI Agent Panel */}
+      <AIAgent
+        selectedFile={selectedFile}
+        currentContent={editorDocument?.value}
+        cursorPosition={cursorPosition}
+        selectedText={selectedText}
+        isVisible={isAIAgentVisible}
+        onToggle={() => setIsAIAgentVisible(!isAIAgentVisible)}
+        onCommand={handleAICommand}
+      />
+
+      {/* Media Intelligence Panel */}
+      <MediaIntelligence
+        isVisible={isMediaIntelligenceVisible}
+        onToggle={() => setIsMediaIntelligenceVisible(!isMediaIntelligenceVisible)}
+        onCodeGenerated={handleCodeGenerated}
+      />
+    </PanelGroup>
     );
   },
 );

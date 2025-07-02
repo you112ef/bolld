@@ -17,7 +17,7 @@ export default function LockAlert({ alert, clearAlert }: Props) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
-        className={`rounded-lg border border-amber-200 bg-amber-50 p-4 mb-2`}
+        className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 mb-2"
       >
         <div className="flex items-start">
           {/* Lock Icon */}
@@ -27,7 +27,7 @@ export default function LockAlert({ alert, clearAlert }: Props) {
             animate={{ scale: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <div className={`i-ph:lock-duotone text-xl text-amber-600`}></div>
+            <div className="i-ph:lock-duotone text-xl text-yellow-600"></div>
           </motion.div>
           {/* Content */}
           <div className="ml-3 flex-1">
@@ -35,7 +35,7 @@ export default function LockAlert({ alert, clearAlert }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className={`text-sm font-medium text-amber-800`}
+              className="text-sm font-medium text-yellow-800"
             >
               File Locked
             </motion.h3>
@@ -43,17 +43,17 @@ export default function LockAlert({ alert, clearAlert }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className={`mt-2 text-sm text-amber-700`}
+              className="mt-2 text-sm text-yellow-700"
             >
               <p>This file or folder is currently locked and cannot be modified.</p>
               <p className="mt-1">To make changes, please unlock it first from the file tree.</p>
               {description && (
-                <div className="text-xs text-amber-600 p-2 bg-amber-100 rounded mt-4 mb-4 border-l-4 border-amber-300 font-mono">
+                <div className="text-xs text-yellow-600 p-2 bg-yellow-100 rounded mt-4 mb-4 border-l-4 border-yellow-300 font-mono">
                   {description}
                 </div>
               )}
               {content && (
-                <div className="text-xs text-amber-600 p-2 bg-amber-100 rounded mt-2 border-l-4 border-amber-300 font-mono">
+                <div className="text-xs text-yellow-600 p-2 bg-yellow-100 rounded mt-2 border-l-4 border-yellow-300 font-mono">
                   Path: {content}
                 </div>
               )}
@@ -70,10 +70,10 @@ export default function LockAlert({ alert, clearAlert }: Props) {
                 <button
                   onClick={clearAlert}
                   className={classNames(
-                    `px-3 py-1.5 rounded-md text-sm font-medium`,
-                    'bg-amber-600',
-                    'hover:bg-amber-700',
-                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500',
+                    'px-3 py-1.5 rounded-md text-sm font-medium',
+                    'bg-yellow-600',
+                    'hover:bg-yellow-700',
+                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500',
                     'text-white',
                     'transition-colors duration-200',
                   )}
