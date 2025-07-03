@@ -1,257 +1,329 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { TextSearchOptions, TextSearchOnProgressCallback, WebContainer } from '@webcontainer/api';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useStore } from '@nanostores/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { webcontainer } from '~/lib/webcontainer';
-import { WORK_DIR } from '~/utils/constants';
-import { debounce } from '~/utils/debounce';
+import { semanticSearch } from '~/lib/search/semanticSearch';
+import { classNames } from '~/utils/classNames';
+import { createScopedLogger } from '~/utils/logger';
 
-interface DisplayMatch {
-  path: string;
+const logger = createScopedLogger('Search');
+
+interface SearchResult {
+  filePath: string;
+  content: string;
+  score: number;
+  startOffset: number;
+  endOffset: number;
   lineNumber: number;
-  previewText: string;
-  matchCharStart: number;
-  matchCharEnd: number;
+  context: string;
+  language: string;
 }
 
-async function performTextSearch(
-  instance: WebContainer,
-  query: string,
-  options: Omit<TextSearchOptions, 'folders'>,
-  onProgress: (results: DisplayMatch[]) => void,
-): Promise<void> {
-  if (!instance || typeof instance.internal?.textSearch !== 'function') {
-    console.error('WebContainer instance not available or internal searchText method is missing/not a function.');
-
-    return;
-  }
-
-  const searchOptions: TextSearchOptions = {
-    ...options,
-    folders: [WORK_DIR],
-  };
-
-  const progressCallback: TextSearchOnProgressCallback = (filePath: any, apiMatches: any[]) => {
-    const displayMatches: DisplayMatch[] = [];
-
-    apiMatches.forEach((apiMatch: { preview: { text: string; matches: string | any[] }; ranges: any[] }) => {
-      const previewLines = apiMatch.preview.text.split('\n');
-
-      apiMatch.ranges.forEach((range: { startLineNumber: number; startColumn: any; endColumn: any }) => {
-        let previewLineText = '(Preview line not found)';
-        let lineIndexInPreview = -1;
-
-        if (apiMatch.preview.matches.length > 0) {
-          const previewStartLine = apiMatch.preview.matches[0].startLineNumber;
-          lineIndexInPreview = range.startLineNumber - previewStartLine;
-        }
-
-        if (lineIndexInPreview >= 0 && lineIndexInPreview < previewLines.length) {
-          previewLineText = previewLines[lineIndexInPreview];
-        } else {
-          previewLineText = previewLines[0] ?? '(Preview unavailable)';
-        }
-
-        displayMatches.push({
-          path: filePath,
-          lineNumber: range.startLineNumber,
-          previewText: previewLineText,
-          matchCharStart: range.startColumn,
-          matchCharEnd: range.endColumn,
-        });
-      });
-    });
-
-    if (displayMatches.length > 0) {
-      onProgress(displayMatches);
-    }
-  };
-
-  try {
-    await instance.internal.textSearch(query, searchOptions, progressCallback);
-  } catch (error) {
-    console.error('Error during internal text search:', error);
-  }
-}
-
-function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatch[]> {
-  return results.reduce(
-    (acc, result) => {
-      if (!acc[result.path]) {
-        acc[result.path] = [];
-      }
-
-      acc[result.path].push(result);
-
-      return acc;
-    },
-    {} as Record<string, DisplayMatch[]>,
-  );
-}
-
-export function Search() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<DisplayMatch[]>([]);
+export const Search = () => {
+  const files = useStore(workbenchStore.files);
+  
+  const [query, setQuery] = useState('');
+  const [searchMode, setSearchMode] = useState<'semantic' | 'fuzzy' | 'hybrid'>('semantic');
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
-  const [hasSearched, setHasSearched] = useState(false);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [indexStats, setIndexStats] = useState({ files: 0, chunks: 0 });
+  
+  const inputRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<number>();
 
-  const groupedResults = useMemo(() => groupResultsByFile(searchResults), [searchResults]);
+  // Available languages for filtering
+  const availableLanguages = [
+    'javascript', 'typescript', 'python', 'html', 'css', 'json', 
+    'markdown', 'sql', 'yaml', 'bash', 'go', 'rust', 'java', 'php', 'ruby'
+  ];
 
+  // Initialize search index when files change
   useEffect(() => {
-    if (searchResults.length > 0) {
-      const allExpanded: Record<string, boolean> = {};
-      Object.keys(groupedResults).forEach((file) => {
-        allExpanded[file] = true;
-      });
-      setExpandedFiles(allExpanded);
-    }
-  }, [groupedResults, searchResults]);
+    const indexFiles = async () => {
+      if (Object.keys(files).length === 0) return;
+      
+      setIsIndexing(true);
+      try {
+        await semanticSearch.indexFiles(files);
+        setIndexStats({
+          files: semanticSearch.getIndexedFileCount(),
+          chunks: semanticSearch.getChunkCount(),
+        });
+        logger.info('Search index updated');
+      } catch (error) {
+        logger.error('Failed to index files for search:', error);
+      } finally {
+        setIsIndexing(false);
+      }
+    };
 
-  const handleSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setExpandedFiles({});
-      setHasSearched(false);
+    indexFiles();
+  }, [files]);
 
+  // Debounced search function
+  const performSearch = useCallback(async (searchQuery: string) => {
+    if (!searchQuery.trim()) {
+      setResults([]);
       return;
     }
 
     setIsSearching(true);
-    setSearchResults([]);
-    setExpandedFiles({});
-    setHasSearched(true);
-
-    const minLoaderTime = 300; // ms
-    const start = Date.now();
-
+    
     try {
-      const instance = await webcontainer;
-      const options: Omit<TextSearchOptions, 'folders'> = {
-        homeDir: WORK_DIR, // Adjust this path as needed
-        includes: ['**/*.*'],
-        excludes: ['**/node_modules/**', '**/package-lock.json', '**/.git/**', '**/dist/**', '**/*.lock'],
-        gitignore: true,
-        requireGit: false,
-        globalIgnoreFiles: true,
-        ignoreSymlinks: false,
-        resultLimit: 500,
-        isRegex: false,
-        caseSensitive: false,
-        isWordMatch: false,
-      };
+      const searchResults = await semanticSearch.search({
+        query: searchQuery,
+        type: searchMode,
+        maxResults: 20,
+        minScore: searchMode === 'semantic' ? 0.1 : 0,
+        languageFilter: selectedLanguages.length > 0 ? selectedLanguages : undefined,
+      });
 
-      const progressHandler = (batchResults: DisplayMatch[]) => {
-        setSearchResults((prevResults) => [...prevResults, ...batchResults]);
-      };
-
-      await performTextSearch(instance, query, options, progressHandler);
+      setResults(searchResults);
+      logger.info(`Found ${searchResults.length} results for "${searchQuery}"`);
     } catch (error) {
-      console.error('Failed to initiate search:', error);
+      logger.error('Search failed:', error);
+      setResults([]);
     } finally {
-      const elapsed = Date.now() - start;
-
-      if (elapsed < minLoaderTime) {
-        setTimeout(() => setIsSearching(false), minLoaderTime - elapsed);
-      } else {
-        setIsSearching(false);
-      }
+      setIsSearching(false);
     }
+  }, [searchMode, selectedLanguages]);
+
+  // Handle input changes with debouncing
+  const handleInputChange = useCallback((value: string) => {
+    setQuery(value);
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set new timeout for debounced search
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch(value);
+    }, 300);
+  }, [performSearch]);
+
+  // Handle result selection
+  const handleResultSelect = useCallback((result: SearchResult) => {
+    // Open the file in the editor
+    workbenchStore.setSelectedFile(result.filePath);
+    
+    // TODO: Add line jumping functionality when Monaco editor supports it
+    logger.info(`Opening file ${result.filePath} at line ${result.lineNumber}`);
   }, []);
 
-  const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
+     // Toggle language filter
+   const toggleLanguageFilter = useCallback((language: string) => {
+     setSelectedLanguages((prev: string[]) => 
+       prev.includes(language)
+         ? prev.filter((l: string) => l !== language)
+         : [...prev, language]
+     );
+   }, []);
 
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setSelectedLanguages([]);
+    setQuery('');
+    setResults([]);
+  }, []);
+
+  // Cleanup timeout on unmount
   useEffect(() => {
-    debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch]);
-
-  const handleResultClick = (filePath: string, line?: number) => {
-    workbenchStore.setSelectedFile(filePath);
-
-    /*
-     * Adjust line number to be 0-based if it's defined
-     * The search results use 1-based line numbers, but CodeMirrorEditor expects 0-based
-     */
-    const adjustedLine = typeof line === 'number' ? Math.max(0, line - 1) : undefined;
-
-    workbenchStore.setCurrentDocumentScrollPosition({ line: adjustedLine, column: 0 });
-  };
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
-      {/* Search Bar */}
-      <div className="flex items-center py-3 px-3">
-        <div className="relative flex-1">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search"
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none transition-all"
-          />
+    <div className="h-full flex flex-col">
+      {/* Search Header */}
+      <div className="p-3 border-b border-bolt-elements-borderColor">
+        <div className="space-y-3">
+          {/* Search Input */}
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder="Search code... (e.g., 'authentication logic', 'React components')"
+              className="w-full px-3 py-2 pl-9 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              {isSearching ? (
+                <div className="i-ph:spinner animate-spin text-bolt-elements-textTertiary" />
+              ) : (
+                <div className="i-ph:magnifying-glass text-bolt-elements-textTertiary" />
+              )}
+            </div>
+          </div>
+
+          {/* Search Mode Selector */}
+          <div className="flex gap-1">
+            {(['semantic', 'fuzzy', 'hybrid'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setSearchMode(mode)}
+                className={classNames(
+                  'px-2 py-1 text-xs rounded transition-colors',
+                  searchMode === mode
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-4'
+                )}
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Language Filters */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-bolt-elements-textSecondary">
+                Language Filter
+              </span>
+              {selectedLanguages.length > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+              {availableLanguages.map((language) => (
+                <button
+                  key={language}
+                  onClick={() => toggleLanguageFilter(language)}
+                  className={classNames(
+                    'px-2 py-1 text-xs rounded transition-colors',
+                    selectedLanguages.includes(language)
+                      ? 'bg-green-600 text-white'
+                      : 'bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-4'
+                  )}
+                >
+                  {language}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Results */}
-      <div className="flex-1 overflow-auto py-2">
-        {isSearching && (
-          <div className="flex items-center justify-center h-32 text-bolt-elements-textTertiary">
-            <div className="i-ph:circle-notch animate-spin mr-2" /> Searching...
+      {/* Index Status */}
+      {(isIndexing || indexStats.files > 0) && (
+        <div className="px-3 py-2 bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor">
+          <div className="flex items-center gap-2">
+            {isIndexing ? (
+              <div className="i-ph:spinner animate-spin text-blue-500" />
+            ) : (
+              <div className="i-ph:database text-green-500" />
+            )}
+            <span className="text-xs text-bolt-elements-textSecondary">
+              {isIndexing 
+                ? 'Indexing files for search...'
+                : `Indexed ${indexStats.files} files (${indexStats.chunks} chunks)`
+              }
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Search Results */}
+      <div className="flex-1 overflow-y-auto">
+        <AnimatePresence>
+          {results.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="p-3"
+            >
+              <div className="text-xs font-medium text-bolt-elements-textSecondary mb-3">
+                {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
+              </div>
+              
+              <div className="space-y-2">
+                {results.map((result, index) => (
+                  <motion.button
+                    key={`${result.filePath}-${result.startOffset}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => handleResultSelect(result)}
+                    className="w-full p-3 bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 rounded border border-bolt-elements-borderColor text-left transition-colors"
+                  >
+                    <div className="space-y-2">
+                      {/* File info */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium text-bolt-elements-textPrimary truncate">
+                            {result.filePath}
+                          </div>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                            {result.language}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-bolt-elements-textTertiary">
+                          <span>Line {result.lineNumber}</span>
+                          <span>•</span>
+                          <span>{(result.score * 100).toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      
+                      {/* Content preview */}
+                      <div className="text-xs text-bolt-elements-textSecondary">
+                        <div className="font-mono bg-bolt-elements-background-depth-1 p-2 rounded border-l-2 border-blue-500">
+                          {result.context.length > 200 
+                            ? `${result.context.slice(0, 200)}...`
+                            : result.context
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Empty states */}
+        {!isSearching && !isIndexing && query && results.length === 0 && (
+          <div className="p-6 text-center">
+            <div className="i-ph:magnifying-glass text-4xl text-bolt-elements-textTertiary mb-2" />
+            <p className="text-sm text-bolt-elements-textSecondary mb-1">No results found</p>
+            <p className="text-xs text-bolt-elements-textTertiary">
+              Try adjusting your search terms or filters
+            </p>
           </div>
         )}
-        {!isSearching && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
-        )}
-        {!isSearching &&
-          Object.keys(groupedResults).map((file) => (
-            <div key={file} className="mb-2">
-              <button
-                className="flex gap-2 items-center w-full text-left py-1 px-2 text-bolt-elements-textSecondary bg-transparent hover:bg-bolt-elements-background-depth-3 group"
-                onClick={() => setExpandedFiles((prev) => ({ ...prev, [file]: !prev[file] }))}
-              >
-                <span
-                  className=" i-ph:caret-down-thin w-3 h-3 text-bolt-elements-textSecondary transition-transform"
-                  style={{ transform: expandedFiles[file] ? 'rotate(180deg)' : undefined }}
-                />
-                <span className="font-normal text-sm">{file.split('/').pop()}</span>
-                <span className="h-5.5 w-5.5 flex items-center justify-center text-xs ml-auto bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent rounded-full">
-                  {groupedResults[file].length}
-                </span>
-              </button>
-              {expandedFiles[file] && (
-                <div className="">
-                  {groupedResults[file].map((match, idx) => {
-                    const contextChars = 7;
-                    const isStart = match.matchCharStart <= contextChars;
-                    const previewStart = isStart ? 0 : match.matchCharStart - contextChars;
-                    const previewText = match.previewText.slice(previewStart);
-                    const matchStart = isStart ? match.matchCharStart : contextChars;
-                    const matchEnd = isStart
-                      ? match.matchCharEnd
-                      : contextChars + (match.matchCharEnd - match.matchCharStart);
 
-                    return (
-                      <div
-                        key={idx}
-                        className="hover:bg-bolt-elements-background-depth-3 cursor-pointer transition-colors pl-6 py-1"
-                        onClick={() => handleResultClick(match.path, match.lineNumber)}
-                      >
-                        <pre className="font-mono text-xs text-bolt-elements-textTertiary truncate">
-                          {!isStart && <span>...</span>}
-                          {previewText.slice(0, matchStart)}
-                          <span className="bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent rounded px-1">
-                            {previewText.slice(matchStart, matchEnd)}
-                          </span>
-                          {previewText.slice(matchEnd)}
-                        </pre>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+        {!query && !isIndexing && (
+          <div className="p-6 text-center">
+            <div className="i-ph:sparkle text-4xl text-bolt-elements-textTertiary mb-2" />
+            <p className="text-sm text-bolt-elements-textSecondary mb-1">Semantic Code Search</p>
+            <p className="text-xs text-bolt-elements-textTertiary mb-4">
+              Search your codebase using natural language
+            </p>
+            <div className="space-y-2 text-xs text-bolt-elements-textTertiary">
+              <div>Try searches like:</div>
+              <div className="space-y-1 font-mono text-xs">
+                <div>"authentication logic"</div>
+                <div>"React components"</div>
+                <div>"database queries"</div>
+                <div>"error handling"</div>
+              </div>
             </div>
-          ))}
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};

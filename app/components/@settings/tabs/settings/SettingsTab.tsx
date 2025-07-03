@@ -60,29 +60,29 @@ export default function SettingsTab() {
   }, [settings]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4 px-2 sm:px-0">
       {/* Language & Notifications */}
       <motion.div
-        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4 space-y-4"
+        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-3 sm:p-4 space-y-3 sm:space-y-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="i-ph:palette-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Preferences</span>
+          <span className="text-xs sm:text-sm font-medium text-bolt-elements-textPrimary">Preferences</span>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="i-ph:translate-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Language</label>
+            <div className="i-ph:translate-fill w-3 sm:w-4 h-3 sm:h-4 text-bolt-elements-textSecondary" />
+            <label className="block text-xs sm:text-sm text-bolt-elements-textSecondary">Language</label>
           </div>
           <select
             value={settings.language}
             onChange={(e) => setSettings((prev) => ({ ...prev, language: e.target.value }))}
             className={classNames(
-              'w-full px-3 py-2 rounded-lg text-sm',
+              'w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm',
               'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
               'text-bolt-elements-textPrimary',
@@ -105,12 +105,12 @@ export default function SettingsTab() {
 
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="i-ph:bell-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Notifications</label>
+            <div className="i-ph:bell-fill w-3 sm:w-4 h-3 sm:h-4 text-bolt-elements-textSecondary" />
+            <label className="block text-xs sm:text-sm text-bolt-elements-textSecondary">Notifications</label>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-bolt-elements-textSecondary">
-              {settings.notifications ? 'Notifications are enabled' : 'Notifications are disabled'}
+            <span className="text-xs sm:text-sm text-bolt-elements-textSecondary">
+              {settings.notifications ? 'Enabled' : 'Disabled'}
             </span>
             <Switch
               checked={settings.notifications}
@@ -143,26 +143,26 @@ export default function SettingsTab() {
 
       {/* Timezone */}
       <motion.div
-        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
+        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-3 sm:p-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="i-ph:clock-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Time Settings</span>
+          <span className="text-xs sm:text-sm font-medium text-bolt-elements-textPrimary">Time Settings</span>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="i-ph:globe-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Timezone</label>
+            <div className="i-ph:globe-fill w-3 sm:w-4 h-3 sm:h-4 text-bolt-elements-textSecondary" />
+            <label className="block text-xs sm:text-sm text-bolt-elements-textSecondary">Timezone</label>
           </div>
           <select
             value={settings.timezone}
             onChange={(e) => setSettings((prev) => ({ ...prev, timezone: e.target.value }))}
             className={classNames(
-              'w-full px-3 py-2 rounded-lg text-sm',
+              'w-full px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm',
               'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
               'text-bolt-elements-textPrimary',
@@ -177,14 +177,14 @@ export default function SettingsTab() {
 
       {/* Simplified Keyboard Shortcuts */}
       <motion.div
-        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
+        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-3 sm:p-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="i-ph:keyboard-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Keyboard Shortcuts</span>
+          <span className="text-xs sm:text-sm font-medium text-bolt-elements-textPrimary">Keyboard Shortcuts</span>
         </div>
 
         <div className="space-y-2">
