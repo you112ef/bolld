@@ -98,12 +98,65 @@ const COLOR_PRIMITIVES = {
 };
 
 export default defineConfig({
-  safelist: [...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`)],
+  safelist: [
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`),
+    // Performance: Pre-generate common utility classes
+    'transition-theme',
+    'bolt-ease-cubic-bezier',
+    'max-w-chat',
+    'glass-card',
+    'elevated-card',
+    'focus-ring',
+  ],
   shortcuts: {
+    // Enhanced easing and transitions
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
+    'bolt-ease-spring': 'ease-[cubic-bezier(0.175,0.885,0.32,1.275)]',
     'transition-theme': 'transition-[background-color,border-color,color] duration-150 bolt-ease-cubic-bezier',
-    kdb: 'bg-bolt-elements-code-background text-bolt-elements-code-text py-1 px-1.5 rounded-md',
+    'transition-smooth': 'transition-all duration-200 bolt-ease-cubic-bezier',
+    'transition-spring': 'transition-all duration-300 bolt-ease-spring',
+    
+    // Enhanced keyboard and accessibility
+    kdb: 'bg-bolt-elements-code-background text-bolt-elements-code-text py-1 px-1.5 rounded-md font-mono text-sm',
+    'focus-ring': 'focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColorActive focus:ring-offset-2 focus:ring-offset-bolt-elements-bg-depth-1',
+    'focus-ring-inset': 'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-bolt-elements-borderColorActive',
+    
+    // Layout and sizing
     'max-w-chat': 'max-w-[var(--chat-max-width)]',
+    'container-responsive': 'mx-auto px-4 sm:px-6 lg:px-8',
+    'full-bleed': 'w-screen relative left-1/2 right-1/2 -mx-[50vw]',
+    
+    // Enhanced card system
+    'glass-card': 'backdrop-blur-md bg-bolt-elements-bg-depth-1/80 border border-bolt-elements-borderColor rounded-lg',
+    'elevated-card': 'bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200',
+    'interactive-card': 'elevated-card hover:border-bolt-elements-borderColorActive cursor-pointer transition-smooth',
+    
+    // Button variants
+    'btn-base': 'inline-flex items-center justify-center rounded-md text-sm font-medium transition-smooth focus-ring disabled:opacity-50 disabled:pointer-events-none',
+    'btn-primary': 'btn-base bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
+    'btn-secondary': 'btn-base bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover',
+    'btn-danger': 'btn-base bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover',
+    'btn-ghost': 'btn-base hover:bg-bolt-elements-bg-depth-2 text-bolt-elements-textPrimary',
+    'btn-sm': 'h-8 px-3 text-xs',
+    'btn-md': 'h-10 px-4',
+    'btn-lg': 'h-12 px-6',
+    
+    // Input variants
+    'input-base': 'block w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-3 py-2 text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-borderColorActive focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive transition-smooth',
+    'input-error': 'border-bolt-elements-icon-error focus:border-bolt-elements-icon-error focus:ring-bolt-elements-icon-error',
+    
+    // Status indicators
+    'status-success': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    'status-warning': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400',
+    'status-error': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
+    'status-info': 'bg-accent-100 text-accent-800 dark:bg-accent-900/20 dark:text-accent-400',
+    
+    // Scrollbar styling
+    'scrollbar-styled': 'scrollbar-thin scrollbar-track-transparent scrollbar-thumb-bolt-elements-borderColor hover:scrollbar-thumb-bolt-elements-borderColorActive',
+    
+    // Loading states
+    'loading-skeleton': 'animate-pulse bg-bolt-elements-bg-depth-2 rounded',
+    'loading-shimmer': 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent',
   },
   rules: [
     /**
@@ -111,6 +164,17 @@ export default defineConfig({
      * any conflicts with minified CSS classes.
      */
     ['b', {}],
+    
+    // Custom animation keyframes
+    ['animate-shimmer', { animation: 'shimmer 2s infinite' }],
+    
+    // Enhanced spacing system
+    ['space-section', { 'margin-top': '4rem', 'margin-bottom': '4rem' }],
+    ['space-component', { 'margin-top': '2rem', 'margin-bottom': '2rem' }],
+    
+    // Enhanced text utilities
+    ['text-balance', { 'text-wrap': 'balance' }],
+    ['text-pretty', { 'text-wrap': 'pretty' }],
   ],
   theme: {
     colors: {
@@ -228,6 +292,58 @@ export default defineConfig({
         },
       },
     },
+    animation: {
+      'shimmer': 'shimmer 2s infinite',
+      'slide-up': 'slide-up 0.3s ease-out',
+      'slide-down': 'slide-down 0.3s ease-out',
+      'fade-in': 'fade-in 0.2s ease-out',
+      'scale-in': 'scale-in 0.2s ease-out',
+    },
+    keyframes: {
+      shimmer: {
+        '100%': {
+          transform: 'translateX(100%)',
+        },
+      },
+      'slide-up': {
+        '0%': {
+          transform: 'translateY(10px)',
+          opacity: '0',
+        },
+        '100%': {
+          transform: 'translateY(0)',
+          opacity: '1',
+        },
+      },
+      'slide-down': {
+        '0%': {
+          transform: 'translateY(-10px)',
+          opacity: '0',
+        },
+        '100%': {
+          transform: 'translateY(0)',
+          opacity: '1',
+        },
+      },
+      'fade-in': {
+        '0%': {
+          opacity: '0',
+        },
+        '100%': {
+          opacity: '1',
+        },
+      },
+      'scale-in': {
+        '0%': {
+          transform: 'scale(0.95)',
+          opacity: '0',
+        },
+        '100%': {
+          transform: 'scale(1)',
+          opacity: '1',
+        },
+      },
+    },
   },
   transformers: [transformerDirectives()],
   presets: [
@@ -243,6 +359,10 @@ export default defineConfig({
         ...customIconCollection,
       },
       unit: 'em',
+      extraProperties: {
+        'display': 'inline-block',
+        'vertical-align': 'middle',
+      },
     }),
   ],
 });
